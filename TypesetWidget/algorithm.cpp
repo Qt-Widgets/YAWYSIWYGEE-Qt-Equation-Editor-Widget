@@ -41,7 +41,8 @@ QTextCursor Algorithm::getCursorAtSetpoint(const Text& t, qreal x){
 
     while(c.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor)){
         if( fm.width(c.selectedText()) > x ){
-            c.setPosition(c.position()-1);
+            c.clearSelection();
+            c.movePosition(QTextCursor::Left);
             return c;
         }
     }

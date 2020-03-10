@@ -16,8 +16,8 @@
 #include "globals.h"
 #include "line.h"
 #include "parser.h"
+#include "substitutions.h"
 #include "text.h"
-#include "../LatexSymbols/keywordtoqchar.h"
 #include <QPainter>
 
 namespace Typeset{
@@ -309,6 +309,18 @@ void Cursor::insertParagraphSeparator(){
     doc.undo_stack->push( insert("\n") );
 }
 
+QString Cursor::selectedCode() const{
+    QString str;
+    if(!hasSelection()) return str;
+
+    QTextStream out(&str);
+
+    if(forward()) Algorithm::write(*anchor_text, anchor_cursor, *text, cursor, out);
+    else Algorithm::write(*text, cursor, *anchor_text, anchor_cursor, out);
+
+    return str;
+}
+
 void Cursor::copy() const{
     if(!hasSelection()) return;
 
@@ -338,14 +350,20 @@ void Cursor::paste(const QString& str){
         commands.push_back( deleteSelection() );
         commands[0]->redo();
         if(Parser::shouldParseAsCode(str)) commands.push_back(evaluate(str));
-        else commands.push_back(insert(str));
+        else{
+            QString unescape = str;
+            commands.push_back(insert(Parser::removeEscapes(unescape)));
+        }
         commands[1]->redo();
         commands[1]->undo();
         commands[0]->undo();
         doc.undo_stack->push( new CommandList(commands) );
     }else{
         if(Parser::shouldParseAsCode(str)) doc.undo_stack->push(evaluate(str));
-        else doc.undo_stack->push(insert(str));
+        else{
+            QString unescape = str;
+            doc.undo_stack->push(insert(Parser::removeEscapes(unescape)));
+        }
     }
 }
 
@@ -589,11 +607,13 @@ void Cursor::anchorTextFromRight(Text* t){
 }
 
 void Cursor::enterConstructFromLeft(Construct* c){
-    enterTextFromLeft(c->front()->front);
+    if(SubPhrase* front = c->front()) enterTextFromLeft(front->front);
+    else enterTextFromLeft(c->next);
 }
 
 void Cursor::enterConstructFromRight(Construct* c){
-    enterTextFromRight(c->back()->back);
+    if(SubPhrase* back = c->back()) enterTextFromRight(back->back);
+    else enterTextFromRight(c->prev);
 }
 
 void Cursor::clearSetpoint(){
@@ -635,51 +655,6 @@ QUndoCommand* Cursor::evaluate(const QString& source){
     else return new CommandEvalPhrase(*this, source, text, cursor);
 }
 
-template<ushort indicator, ushort sub>
-static void checkTwoCharSub(Cursor& c, QTextCursor cursor){
-    cursor.movePosition(QTextCursor::Left);
-    cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);
-    if(cursor.selectedText() == indicator){
-        c.selectPreviousChar();
-        c.selectPreviousChar();
-        c.keystroke(QChar(sub));
-    }
-}
-
-void Cursor::checkForSubstitution(const QChar& c){
-    if(cursor.position() < 2) return;
-
-    switch(c.unicode()){
-        case ' ':
-            checkSlashSub();
-            break;
-        case '-':
-            checkTwoCharSub<'<', 8592>(*this, cursor);
-            checkTwoCharSub<'|', 8866>(*this, cursor);
-            break;
-        case '|':
-            checkTwoCharSub<'|', 8214>(*this, cursor);
-            break;
-        case '=':
-            checkTwoCharSub<'<', 8656>(*this, cursor);
-            checkTwoCharSub<':', 8788>(*this, cursor);
-            break;
-        case '>':
-            checkTwoCharSub<8866, 8614>(*this, cursor);
-            checkTwoCharSub<'-', 8594>(*this, cursor);
-            checkTwoCharSub<'=', 8658>(*this, cursor);
-            checkTwoCharSub<8592, 8596>(*this, cursor);
-            checkTwoCharSub<8656, 8660>(*this, cursor);
-            break;
-        case ':':
-            checkTwoCharSub<':', 8759>(*this, cursor);
-            break;
-        case '!':
-            checkTwoCharSub<'!', 8252>(*this, cursor);
-            break;
-    }
-}
-
 void Cursor::checkSlashSub(){
     if(cursor.position() < 3) return;
 
@@ -694,8 +669,8 @@ void Cursor::checkSlashSub(){
                 temp_cursor.movePosition(QTextCursor::Right);
                 temp_cursor.setPosition(word_end, QTextCursor::KeepAnchor);
                 QString word = temp_cursor.selectedText();
-                auto lookup = LatexSymbols::keyword_to_qchar.find(word);
-                if(lookup == LatexSymbols::keyword_to_qchar.end()){
+                auto lookup = keyword_map.find(word);
+                if(lookup == keyword_map.end()){
                     word.replace('{', OPEN);
                     word.replace('}', CLOSE);
                     word.prepend(ESCAPE);
@@ -722,7 +697,7 @@ void Cursor::checkSlashSub(){
                     word.replace("floor", "⌊⌋");
                     word.replace("dangle","⟪⟫");
                     word.replace("dbracket", "⟦⟧");
-                    word.replace("bar", "┊|");
+                    word.replace("eval", "┊|");
                     word.replace("abs", "||");
                     word.replace("norm", "‖‖");
                     word.replace("iiint", "∭");
@@ -740,7 +715,7 @@ void Cursor::checkSlashSub(){
                     word.replace("inf", QString("w") + OPEN + "inf" + CLOSE);
                     word.replace("lim", QString("w") + OPEN + "lim" + CLOSE);
 
-                    if(Parser::isValidCode(word)){
+                    if(Parser::shouldParseAsCode(word)){
                         cursor.setPosition(temp_cursor.position() + 1);
                         anchor_cursor.setPosition(temp_cursor.anchor() - 1);
                         paste(word);
@@ -748,7 +723,7 @@ void Cursor::checkSlashSub(){
 
                     return;
                 }else{
-                    const QChar sub = lookup.value();
+                    const QString sub = lookup.value();
                     cursor.setPosition(temp_cursor.position() + 1);
                     anchor_cursor.setPosition(temp_cursor.anchor() - 1);
                     paste(sub);

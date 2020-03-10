@@ -33,7 +33,6 @@ CommandInsertMultiline::CommandInsertMultiline(Cursor& cursor, Document& doc, co
     lR = l;
     tR = lR->back;
     tR->next = tL->next;
-    lR->back = lL->back;
     cR = tR->textCursor();
     cR.movePosition(QTextCursor::End);
     cR.insertText(removed_str);
@@ -67,10 +66,8 @@ void CommandInsertMultiline::redo(){
         }
     }
     lL->back = tL;
-    for(Line* l = lL_next; l != lR->next; l = l->next){
+    for(Line* l = lL_next; l != lR->next; l = l->next)
         l->show();
-        l->setLineNumberVisible(doc.show_line_nums);
-    }
     if(lR->next){
         lR->next->prev = lR;
         lR->next->setParentItem(lR);

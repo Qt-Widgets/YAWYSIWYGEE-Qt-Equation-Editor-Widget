@@ -16,10 +16,9 @@ namespace Typeset{
 Text::Text(uint8_t script_level, QString str){
     setFont(Globals::fonts[script_level]);
     setTextInteractionFlags(Qt::TextEditorInteraction);
+    setFlag(QGraphicsItem::GraphicsItemFlag::ItemIsSelectable);
     document()->setUndoRedoEnabled(false);
     document()->setDocumentMargin(margin);
-
-    setDefaultTextColor(Globals::text_color);
     setPlainText(str);
 
     calculateSize();
@@ -38,10 +37,6 @@ bool Text::isDeepestScriptLevel(uint8_t script_level){
     return script_level == Globals::deepest_script_level;
 }
 
-void Text::updateTheme(){
-    setDefaultTextColor(Globals::text_color);
-}
-
 void Text::updateToTop(){
     calculateSize();
     parent->updateToTop();
@@ -58,7 +53,7 @@ void Text::write(QTextStream& out) const{
 }
 
 uint8_t Text::getScriptLevel() const{
-    int current_font_size = font().pointSize();
+    int current_font_size = font().pixelSize();
     for(uint8_t i = 0; i <= Globals::deepest_script_level; i++)
         if( current_font_size == Globals::font_sizes[i] ) return i;
 
@@ -69,7 +64,26 @@ void Text::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWid
     //This avoids a border which QGraphicsTextItem shows when focused
     QStyleOptionGraphicsItem my_option(*option);
     my_option.state &= ~QStyle::State_HasFocus;
-    QGraphicsTextItem::paint(painter, &my_option, widget);    
+    if(option->state.testFlag(QStyle::StateFlag::State_Selected)){
+        //painter->setBrush(option->palette.highlightedText());
+        //painter->setPen(painter->brush().color());
+        my_option.state &= ~QStyle::State_Selected;
+
+        setDefaultTextColor(scene()->palette().highlightedText().color());
+    }else{
+        setDefaultTextColor(scene()->palette().text().color());
+    }
+    QGraphicsTextItem::paint(painter, &my_option, widget);
+}
+
+void Text::focusInEvent(QFocusEvent* event){
+    setTextInteractionFlags(Qt::TextEditorInteraction);
+    QGraphicsTextItem::focusInEvent(event);
+}
+
+void Text::focusOutEvent(QFocusEvent* event){
+    setTextInteractionFlags(Qt::TextInteractionFlag::TextBrowserInteraction); //Remove blinking cursor
+    QGraphicsItem::focusOutEvent(event); //Bypass QGraphicsTextItem::focusOutEvent()
 }
 
 void Text::calculateSize(){

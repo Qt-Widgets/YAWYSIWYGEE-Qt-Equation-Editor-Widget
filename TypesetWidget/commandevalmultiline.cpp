@@ -39,7 +39,7 @@ CommandEvalMultiline::CommandEvalMultiline(Cursor& cursor, Document& doc, const 
 
     lR = ends.second;
     tR = lR->back;
-    tR->next = tL->next; //tL->next is getting lost!
+    tR->next = tL->next;
     if(tL->next) lR->back = lL->back;
     lR->next = lL->next;
     cR = tR->textCursor();
@@ -84,10 +84,8 @@ void CommandEvalMultiline::redo(){
         lL->back = c->next;
     }
     //Show intermediate lines
-    for(Line* l = lL_next; l != lR->next; l = l->next){
+    for(Line* l = lL_next; l != lR->next; l = l->next)
         l->show();
-        l->setLineNumberVisible(doc.show_line_nums);
-    }
 
     if(tR->next){
         tR->next->prev = tR;

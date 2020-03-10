@@ -3,7 +3,9 @@
 #include "construct.h"
 #include "globals.h"
 #include "text.h"
+#include <QGraphicsScene>
 #include <QPainter>
+#include <QStyleOptionGraphicsItem>
 
 namespace Typeset{
 
@@ -65,9 +67,16 @@ void SubPhrase::write(QTextStream& out) const{
     out << CLOSE;
 }
 
+bool SubPhrase::isEmpty() const{
+    return (front == back) && front->isEmpty();
+}
+
 void SubPhrase::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*){
     if(isEmpty()){
-        painter->setPen(Globals::empty_box_pen);
+        QPen p = Globals::empty_box_pen;
+        if(front->isSelected()) p.setColor(scene()->palette().highlightedText().color());
+        else p.setColor(scene()->palette().text().color());
+        painter->setPen(p);
         painter->drawRect(QRectF(-1 + padding/2, padding/2, empty_box_width, empty_box_height));
     }
 }
@@ -84,10 +93,6 @@ void SubPhrase::calculateSize(){
         Phrase::calculateSize();
     }
 
-}
-
-bool SubPhrase::isEmpty() const{
-    return (front == back) && front->isEmpty();
 }
 
 }

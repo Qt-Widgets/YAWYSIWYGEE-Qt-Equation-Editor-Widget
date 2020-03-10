@@ -1,15 +1,11 @@
-QT       += core gui svg
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT += core gui svg widgets
 
 TARGET = TypesetWidget
-TEMPLATE = app
+TEMPLATE = lib
 DEFINES += QT_DEPRECATED_WARNINGS
-
 CONFIG += c++11
-
-SUBDIRS += \
-           ../LatexSymbols
+CONFIG += staticlib
+DESTDIR = $$shell_path($$_PRO_FILE_PWD_)/../lib
 
 SOURCES += \
     accent.cpp \
@@ -29,6 +25,7 @@ SOURCES += \
     commandlist.cpp \
     construct.cpp \
     cursor.cpp \
+    cursor_adhoc_sub.cpp \
     cursorview.cpp \
     document.cpp \
     edit.cpp \
@@ -37,8 +34,6 @@ SOURCES += \
     grouping.cpp \
     integral.cpp \
     line.cpp \
-    main.cpp \
-    mainwindow.cpp \
     matrix.cpp \
     parser.cpp \
     phrase.cpp \
@@ -49,7 +44,6 @@ SOURCES += \
     underscriptedword.cpp
 
 HEADERS += \
-    ../LatexSymbols/keywordtoqchar.h \
     accent.h \
     algorithm.h \
     bigqchar.h \
@@ -75,25 +69,19 @@ HEADERS += \
     grouping.h \
     integral.h \
     line.h \
-    mainwindow.h \
     matrix.h \
     parser.h \
     phrase.h \
     root.h \
     script.h \
     subphrase.h \
+    substitutions.h \
     text.h \
     underscriptedword.h
-
-FORMS += \
-        mainwindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-RESOURCES += \
-    qtypesetobjectresource.qrc
-
-RC_ICONS += lambda.ico
+RESOURCES += qtypesetobjectresource.qrc

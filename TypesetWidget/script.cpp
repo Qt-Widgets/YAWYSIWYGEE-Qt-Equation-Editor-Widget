@@ -13,11 +13,6 @@ Superscript::Superscript(SubPhrase* child, SubPhrase* superscript)
 
 #define child first
 #define superscript second
-void Superscript::updateTheme(){
-    child->updateTheme();
-    superscript->updateTheme();
-}
-
 void Superscript::updateLayout(){
     d = child->d;
     w = child->w + superscript->w;
@@ -46,8 +41,8 @@ void Superscript::write(QTextStream& out) const{
     superscript->write(out);
 }
 
-void Superscript::paint(QPainter*, const QStyleOptionGraphicsItem*, QWidget*){
-    //DO NOTHING
+void Superscript::paint(QPainter* painter, const QStyleOptionGraphicsItem* options, QWidget*){
+    setupPainter(painter, options);
 }
 #undef child
 #undef superscript
@@ -60,11 +55,6 @@ Subscript::Subscript(SubPhrase* child, SubPhrase* subscript)
 
 #define child first
 #define subscript second
-void Subscript::updateTheme(){
-    child->updateTheme();
-    subscript->updateTheme();
-}
-
 void Subscript::updateLayout(){
     u = child->u;
     w = child->w + subscript->w;
@@ -75,7 +65,7 @@ void Subscript::updateLayout(){
 
     d = child->d + e;
 
-    const qreal ys = (hs > a) ? child->u + (1-ratio_subscript)*child->d : child->u + (1-ratio_subscript)*child->d - hs;
+    const qreal ys = child->h() + e - hs;
     subscript->setPos(child->w, ys);
 }
 
@@ -93,8 +83,8 @@ void Subscript::write(QTextStream& out) const{
     subscript->write(out);
 }
 
-void Subscript::paint(QPainter*, const QStyleOptionGraphicsItem*, QWidget*){
-    //DO NOTHING
+void Subscript::paint(QPainter* painter, const QStyleOptionGraphicsItem* options, QWidget*){
+    setupPainter(painter, options);
 }
 #undef child
 #undef subscript
@@ -122,10 +112,11 @@ void Dualscript::deletePostorder(){
     delete this;
 }
 
-void Dualscript::updateTheme(){
-    child->updateTheme();
-    subscript->updateTheme();
-    superscript->updateTheme();
+void Dualscript::select(){
+    setSelected(true);
+    child->select();
+    subscript->select();
+    superscript->select();
 }
 
 void Dualscript::updateLayout(){
@@ -149,7 +140,7 @@ void Dualscript::updateLayout(){
 
     d = child->d + e;
 
-    const qreal ys = (hs > a) ? ym + child->u + (1-ratio_subscript)*child->d : child->u + (1-ratio_subscript)*child->d - hs;
+    const qreal ys = ym + child->h() + e - hs;
     subscript->setPos(child->w, ys);
 }
 
@@ -188,8 +179,8 @@ void Dualscript::write(QTextStream& out) const{
     superscript->write(out);
 }
 
-void Dualscript::paint(QPainter*, const QStyleOptionGraphicsItem*, QWidget*){
-    //DO NOTHING
+void Dualscript::paint(QPainter* painter, const QStyleOptionGraphicsItem* options, QWidget*){
+    setupPainter(painter, options);
 }
 
 }

@@ -32,14 +32,16 @@ public:
     bool isEmpty() const;
     void setParentPhrase(Phrase* parent);
     static bool isDeepestScriptLevel(uint8_t script_level);
-    void updateTheme();
     void updateToTop();
     void populateMenu(QMenu& menu);
     void write(QTextStream& out) const;
     uint8_t getScriptLevel() const;
 
 protected:
-    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
+    virtual void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override final;
+    virtual void focusInEvent(QFocusEvent* event) override;
+    virtual void focusOutEvent(QFocusEvent* event) override;
+
 
 private:
     void calculateSize();
